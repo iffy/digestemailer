@@ -1,0 +1,93 @@
+<!doctype>
+<html>
+  <head>
+    <title>Gmail digest checker</title>
+  </head>
+  <body ng-app="app" ng-controller="TheCtrl as ctrl">
+
+    <div ng-if="!ctrl.has_master_password">
+      <form ng-submit="ctrl.setMasterPassword(master_password)">
+        <input type="password" ng-model="master_password">
+        <button type="submit">Set master password</button>
+      </form>
+    </div>
+
+    <div ng-if="ctrl.has_master_password">
+      Checking accounts:
+      <ul>
+        <li ng-repeat="account in ctrl.accounts">{{ account }}</li>
+      </ul>
+
+      <hr />
+      
+      <form ng-submit="ctrl.addAccount(email, password); email=''; password='';">
+        <div>
+          Gmail address: <input type="text" ng-model="email">
+        </div>
+        <div>
+          Password: <input type="password" ng-model="password">
+        </div>
+        <div>
+          <button type="submit">Add account</button>
+        </div>
+      </form>
+
+      <hr />
+
+      <button ng-click="ctrl.checkNow()">Check now</button>
+    </div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.14/angular.min.js"></script>
+<script>
+var app = angular.module('app', []);
+
+app.controller('TheCtrl', function($http) {
+  var ctrl = this;
+
+  ctrl.has_master_password = false;
+  ctrl.accounts = [];
+
+  ctrl.isMasterPasswordSet = function() {
+    $http.get('/password').then(function(response) {
+      if (angular.fromJson(response.data)) {
+        ctrl.has_master_password = true;
+        ctrl.listAccounts();
+      } else {
+        ctrl.has_master_password = false;
+      }
+    });
+  };
+
+  ctrl.setMasterPassword = function(password) {
+    $http.post('/password', {password: password}).then(function(response) {
+      console.log('password set');
+      ctrl.isMasterPasswordSet();
+    });
+  };
+
+  ctrl.listAccounts = function() {
+    $http.get('/accounts')
+      .then(function(response) {
+        ctrl.accounts = angular.fromJson(response.data);
+      })
+  };
+
+  ctrl.addAccount = function(email, password) {
+    $http.post('/accounts', {email: email, password: password})
+      .then(function(response) {
+        ctrl.accounts.push(email);
+      })
+  };
+
+  ctrl.checkNow = function() {
+    $http.post('/check-now');
+  }
+
+  ctrl.isMasterPasswordSet();
+
+  return ctrl;
+});
+
+</script>
+  </body>
+</html>
